@@ -6,6 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>スマホ操作れんしゅう：ステージ2（ダブルタップ）</title>
   <style>
+    :root{
+      --btn-c1:#ffd27f; /* オレンジ系 */
+      --btn-c2:#ff8800;
+      --btn-clear1:#7fffaf; /* クリア後：グリーン系 */
+      --btn-clear2:#28a745;
+    }
     html,body{
       height:100%; margin:0;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Helvetica Neue", Arial, sans-serif;
@@ -21,7 +27,7 @@
     .arena{display:flex;justify-content:center;margin:16px 0}
     .tap-btn{
       width:260px;height:260px;border:none;border-radius:50%;
-      background: radial-gradient(circle at 30% 30%, #ffd27f, #ff8800);
+      background: radial-gradient(circle at 30% 30%, var(--btn-c1), var(--btn-c2));
       box-shadow:0 10px 24px rgba(49,120,255,.35);
       color:#fff;font-size:1.6rem;font-weight:700;cursor:pointer;touch-action:none;
     }
@@ -65,7 +71,7 @@
   </div>
 
   <script>
-    // --- iOS Safari ズーム抑止（ダブル/ピンチ） ---
+    // --- iOS Safari ズーム抑止 ---
     (function(){
       let lastTouchEnd = 0;
       document.addEventListener('touchend', function(e){
@@ -87,47 +93,41 @@
       const hintEl  = document.getElementById('hint');
 
       const GOAL = 5;
-      const DOUBLE_MS = 300;  // 2回の間隔（ms）以内で成功
-      const LONG_MS   = 550;  // 長押し判定（ms）
+      const DOUBLE_MS = 300;
+      const LONG_MS   = 550;
+      let count = 0, cleared = false;
 
-      let count = 0;
       let awaitingSecond = false;
       let firstTapTime = 0;
-      let longPressTimer = null;
       let pointerDown = false;
+      let longPressTimer = null;
 
-function updateUI(){
-  countEl.textContent = count;
-  leftEl.textContent  = Math.max(0, GOAL - count);
-  bar.style.width     = Math.min(100, Math.round(count/GOAL*100)) + '%';
+      function updateUI(){
+        countEl.textContent = count;
+        leftEl.textContent  = Math.max(0, GOAL - count);
+        bar.style.width     = Math.min(100, Math.round(count/GOAL*100)) + '%';
 
-  if (!cleared && count >= GOAL){
-    cleared = true;
+        if (!cleared && count >= GOAL){
+          cleared = true;
+          tapBtn.textContent = "次のステージへ ▶";
+          tapBtn.style.background =
+            "radial-gradient(circle at 30% 30%, var(--btn-clear1), var(--btn-clear2))";
+          status.textContent = "お見事！リズム良くできています。";
+          clearEl.style.display = 'block';
+          hintEl.textContent = "ボタンを押して、ステージ3へ進んでみましょう！";
+        }
+      }
 
-    // ボタンを「次のステージへ」に変更
-    tapBtn.textContent = "次のステージへ ▶";
-    // 緑に色変更
-    tapBtn.style.background =
-      "radial-gradient(circle at 30% 30%, #7fffaf, #28a745)";
-
-    status.textContent = "お見事！リズム良くできています。";
-    clearEl.style.display = 'block';
-    hintEl.textContent = "ボタンを押して、ステージ3へ進んでみましょう！";
-  }
-}
-function onPointerUp(){
-  if (cleared){
-    // クリア後は「次へ」ナビとして動作
-    window.location.href = "./stage3.html";
-    return;
-  }
-  ...
-}
       function reset(){
-        count=0; awaitingSecond=false; firstTapTime=0;
-        tapBtn.disabled=false; status.textContent="準備OK。まずは1回目、つづけて2回目！";
+        count=0; cleared=false; awaitingSecond=false; firstTapTime=0;
+        tapBtn.disabled=false;
+        tapBtn.textContent="ここをダブルタップ";
+        tapBtn.style.background =
+          "radial-gradient(circle at 30% 30%, var(--btn-c1), var(--btn-c2))";
+        status.textContent="準備OK。まずは1回目、つづけて2回目！";
         hintEl.textContent="コツ：テンポよく「トンッ、トンッ」。長押しは失敗、1回だけだとやり直しです。";
-        clearEl.style.display='none'; updateUI();
+        clearEl.style.display='none';
+        updateUI();
       }
 
       function onPointerDown(){
@@ -135,41 +135,41 @@ function onPointerUp(){
         clearTimeout(longPressTimer);
         longPressTimer = setTimeout(()=>{
           if (!pointerDown) return;
-          // 長押し失敗
-          status.textContent = "長押しになりました。軽く『トンッ、トンッ』と素早く2回！";
-          awaitingSecond=false; // 流れをリセット
+          status.textContent = "長押しになりました。軽く2回トンッと素早く！";
+          awaitingSecond=false;
         }, LONG_MS);
       }
+
       function onPointerUp(){
         pointerDown = false;
         clearTimeout(longPressTimer);
 
+        if (cleared){
+          window.location.href="./stage3.html";
+          return;
+        }
+
         const now = performance.now();
         if (!awaitingSecond){
-          // 1回目
           awaitingSecond = true;
           firstTapTime = now;
-          status.textContent = "いいね！その調子で、もう一度すぐタップ！";
-          // 期限内に2回目が来なければ失敗
+          status.textContent = "いいね！その調子でもう一度！";
           setTimeout(()=>{
-            if (awaitingSecond && (performance.now() - firstTapTime) > DOUBLE_MS){
-              awaitingSecond = false;
-              status.textContent = "少しゆっくりでした。テンポよく『トンッ、トンッ』でやってみましょう。";
+            if (awaitingSecond && (performance.now()-firstTapTime) > DOUBLE_MS){
+              awaitingSecond=false;
+              status.textContent="少しゆっくりでした。テンポよく2回タップ！";
             }
-          }, DOUBLE_MS + 20);
+          }, DOUBLE_MS+20);
         } else {
-          // 2回目
           const gap = now - firstTapTime;
           if (gap <= DOUBLE_MS){
-            // 成功
             count++;
-            status.textContent = "成功！とても良いテンポです。";
-            awaitingSecond = false;
+            status.textContent="成功！とても良いテンポです。";
+            awaitingSecond=false;
             updateUI();
           } else {
-            // 遅すぎ
-            status.textContent = "少し間が空きました。もう少し速く2回タップ！";
-            awaitingSecond = false;
+            status.textContent="間が空きました。もう少し速く！";
+            awaitingSecond=false;
           }
         }
       }
