@@ -25,12 +25,12 @@
       background: radial-gradient(circle at 30% 30%, #63a8ff, #3178ff);
       box-shadow: 0 10px 24px rgba(49,120,255,.35);
       color: #fff; font-size: 1.6rem; font-weight: 700;
-      touch-action: manipulation;           /* iOS以外に有効 */
+      touch-action: none;                   /* iOSでもジェスチャを要素内で完結 */
       cursor: pointer;
     }
-    .status { font-size: 1.4rem; font-weight: 700; text-align: center; margin: 20px 0; }
+    .status { font-size: 1.4rem; font-weight: 700; text-align: center; margin: 20px 0; min-height: 2em; }
     .bar-wrap { background: #eef2ff; height: 20px; border-radius: 999px; overflow: hidden; margin-bottom: 16px; }
-    .bar { height: 100%; width: 0%; background: linear-gradient(90deg, #65d06e, #2fb44d); }
+    .bar { height: 100%; width: 0%; background: linear-gradient(90deg, #65d06e, #2fb44d); transition: width .2s ease; }
     .row { display: flex; justify-content: space-between; font-size: 1.2rem; margin-bottom: 16px; }
     .hint { font-size: 1.3rem; background: #fffbea; border: 2px solid #ffe58f; padding: 14px; border-radius: 12px; }
     .clear-msg { font-size: 1.6rem; font-weight: 700; color: #1f7a2f; display: none; text-align: center; margin-top: 20px; }
@@ -59,70 +59,126 @@
       document.addEventListener('touchend', function(e){
         const now = Date.now();
         if (now - lastTouchEnd <= 300) {
-          // 300ms以内の連続touchend → ダブルタップと見なし、既定の拡大を止める
-          e.preventDefault();
+          e.preventDefault();   // ダブルタップ時のズームを抑止
         }
         lastTouchEnd = now;
       }, { passive: false });
 
-      // ピンチ（2本指）開始も抑止（必要に応じて外せます）
       document.addEventListener('gesturestart', function(e){
-        e.preventDefault();
+        e.preventDefault();     // ピンチズーム開始も抑止（必要なら外せます）
       }, { passive: false });
     })();
     // -----------------------------------------------------------------------
 
     (function(){
-      const tapBtn = document.getElementById('tapBtn');
+      const tapBtn   = document.getElementById('tapBtn');
       const statusEl = document.getElementById('status');
-      const countEl = document.getElementById('count');
-      const leftEl  = document.getElementById('left');
-      const barEl   = document.getElementById('bar');
+      const countEl  = document.getElementById('count');
+      const leftEl   = document.getElementById('left');
+      const barEl    = document.getElementById('bar');
       const clearMsgEl = document.getElementById('clearMsg');
 
       const GOAL = 5;
-      const DOUBLE_MS = 300;   // 300ms以内はダブルタップ
+      const DOUBLE_MS = 300;   // ダブルタップ判定窓
+      const LONG_MS   = 550;   // 長押し判定
       let count = 0;
 
-      // 遅延判定用
-      let pendingTimer = null;
-      let lastTapTime = 0;
+      // タイミング管理
+      let lastUpTime = 0;
+      let pendingSingleTimer = null;
+      let longPressTimer = null;
+      let downTime = 0;
+      let pointerDown = false;
+      let longPressTriggered = false;
 
       function updateUI(){
         countEl.textContent = count;
         leftEl.textContent  = Math.max(0, GOAL - count);
         barEl.style.width   = Math.min(100, Math.round(count/GOAL*100)) + '%';
-        if(count >= GOAL){
+        if (count >= GOAL) {
           clearMsgEl.style.display = 'block';
           tapBtn.disabled = true;
           statusEl.textContent = "お見事！タップはバッチリです。";
         }
       }
 
-      function scheduleSingleTapCount(){
-        if (pendingTimer) return;
-        pendingTimer = setTimeout(() => {
+      function scheduleSingle(){
+        // すでに予約があれば何もしない
+        if (pendingSingleTimer) return;
+        statusEl.textContent = "判定中…（少し間をあけてOK）";
+        pendingSingleTimer = setTimeout(() => {
+          if (tapBtn.disabled) return;
           count++;
           statusEl.textContent = "タップ成功！";
           updateUI();
-          pendingTimer = null;
+          pendingSingleTimer = null;
         }, DOUBLE_MS + 20);
       }
 
-      function handleTap(){
-        if (tapBtn.disabled) return;
-        const now = Date.now();
-        if (now - lastTapTime < DOUBLE_MS){
-          if (pendingTimer){ clearTimeout(pendingTimer); pendingTimer = null; }
-          statusEl.textContent = "ダブルタップになっちゃいました。1回だけタップしましょう。";
-          lastTapTime = now;
-          return;
+      function clearSingle(){
+        if (pendingSingleTimer) {
+          clearTimeout(pendingSingleTimer);
+          pendingSingleTimer = null;
         }
-        lastTapTime = now;
-        scheduleSingleTapCount();
       }
 
-      tapBtn.addEventListener('click', handleTap);
+      function onPointerDown(e){
+        pointerDown = true;
+        longPressTriggered = false;
+        downTime = performance.now();
+
+        // 長押しタイマー
+        clearTimeout(longPressTimer);
+        longPressTimer = setTimeout(() => {
+          if (!pointerDown) return;
+          longPressTriggered = true;
+          statusEl.textContent = "長押しになっています。指先で“軽く素早く”触れてみましょう。";
+          // シングル予約があればキャンセル
+          clearSingle();
+        }, LONG_MS);
+      }
+
+      function onPointerUp(e){
+        const now = performance.now();
+        pointerDown = false;
+        clearTimeout(longPressTimer);
+
+        const dur = now - downTime;
+
+        // 長押し確定（または実測）
+        if (longPressTriggered || dur >= LONG_MS){
+          statusEl.textContent = "長押しになりました。短く『トンッ』でOKです。";
+          // シングル予約キャンセル
+          clearSingle();
+          lastUpTime = now;
+          return;
+        }
+
+        // ダブルタップ判定（前回upからの間隔）
+        if (lastUpTime && (now - lastUpTime) < DOUBLE_MS){
+          statusEl.textContent = "ダブルタップになっちゃいました。1回だけタップしましょう。";
+          // シングル予約キャンセル
+          clearSingle();
+          lastUpTime = now;
+          return;
+        }
+
+        // ここまで来たら“シングル候補” → 遅延で確定
+        lastUpTime = now;
+        scheduleSingle();
+      }
+
+      // Pointer Events（対応端末はこれが最優先）
+      if (window.PointerEvent) {
+        tapBtn.addEventListener('pointerdown', onPointerDown, { passive: true });
+        tapBtn.addEventListener('pointerup',   onPointerUp,   { passive: true });
+        tapBtn.addEventListener('pointercancel', () => { pointerDown = false; clearTimeout(longPressTimer); clearSingle(); });
+      } else {
+        // Fallback: タッチイベント
+        tapBtn.addEventListener('touchstart', (e) => { onPointerDown(e); }, { passive: true });
+        tapBtn.addEventListener('touchend',   (e) => { onPointerUp(e);   }, { passive: true });
+      }
+
       updateUI();
     })();
   </script>
