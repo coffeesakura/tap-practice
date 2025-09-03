@@ -115,7 +115,14 @@ function updateUI(){
     hintEl.textContent = "ボタンを押して、ステージ3へ進んでみましょう！";
   }
 }
-
+function onPointerUp(){
+  if (cleared){
+    // クリア後は「次へ」ナビとして動作
+    window.location.href = "./stage3.html";
+    return;
+  }
+  ...
+}
       function reset(){
         count=0; awaitingSecond=false; firstTapTime=0;
         tapBtn.disabled=false; status.textContent="準備OK。まずは1回目、つづけて2回目！";
@@ -138,13 +145,6 @@ function updateUI(){
         clearTimeout(longPressTimer);
 
         const now = performance.now();
-
-  if (cleared){
-    // クリア後は「次へ」ナビとして動作
-    window.location.href = "./stage3.html";
-    return;
-  }
-  ...
         if (!awaitingSecond){
           // 1回目
           awaitingSecond = true;
