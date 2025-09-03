@@ -139,14 +139,12 @@ function updateUI(){
 
         const now = performance.now();
 
-        function onPointerUp(){
   if (cleared){
     // クリア後は「次へ」ナビとして動作
     window.location.href = "./stage3.html";
     return;
   }
   ...
-}
         if (!awaitingSecond){
           // 1回目
           awaitingSecond = true;
