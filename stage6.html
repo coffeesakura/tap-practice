@@ -2,17 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <!-- モバイル拡大を抑止 -->
+  <!-- モバイルのダブルタップ/ピンチでのブラウザ拡大を抑止 -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>スマホ操作れんしゅう：ステージ5（ピンチ）</title>
+  <title>スマホ操作れんしゅう：ステージ6（ピンチイン／縮小）</title>
   <style>
     :root{
-      /* ステージ5の色（パープル系：新鮮さ/変化のイメージ） */
+      /* 開始色＝パープル（最終ステージの雰囲気） */
       --btn-c1:#d7a7ff;
       --btn-c2:#7b2fff;
-      /* クリア後はグリーン案内で統一 */
-      --btn-clear1:#7fffaf;
-      --btn-clear2:#28a745;
     }
     html,body{
       height:100%; margin:0;
@@ -52,25 +49,25 @@
         <a href="./stage2.html">← ステージ2</a>
         <a href="./stage3.html">← ステージ3</a>
         <a href="./stage4.html">← ステージ4</a>
+        <a href="./stage5.html">← ステージ5</a>
       </div>
-      <p class="title">ステージ5：ピンチ（拡大・縮小）のれんしゅう</p>
-      <p class="desc">丸の上で <strong>2本指</strong> を開く（拡大）か閉じる（縮小）と成功です。<br>2本指の間隔が <strong>20% 以上</strong> 変わるとカウントされます。</p>
+
+      <p class="title">ステージ6：ピンチイン（縮小）のれんしゅう</p>
+      <p class="desc">丸の上に<strong>2本指</strong>を置き、<strong>すぼめる（縮小）</strong>動きをすると成功です。<br>2本指の間隔が<strong>20%以上</strong>縮むとカウントされます。</p>
 
       <div class="arena">
-        <button id="tapBtn" class="tap-btn" aria-label="ここで2本指ピンチ">2本指で拡大/縮小</button>
+        <button id="tapBtn" class="tap-btn" aria-label="ここで2本指ピンチ">2本指で縮小</button>
       </div>
 
-      <div id="status" class="status">準備OK。丸の上に2本指を置いて、広げる/すぼめる動きをしてみましょう。</div>
+      <div id="status" class="status">準備OK。2本指を丸の上に置いて、すぼめてみましょう。</div>
       <div class="bar-wrap"><div id="bar" class="bar"></div></div>
       <div class="row">
         <div>成功数：<strong id="count">0</strong></div>
         <div>のこり：<strong id="left">5</strong></div>
       </div>
 
-      <div id="hint" class="hint">
-        コツ：まず2本指を「丸の上」に置いてから、ゆっくり広げる/縮める。1本指だけでは成功になりません。
-      </div>
-      <div id="clear" class="clear">🎉 クリア！ピンチ操作はバッチリです。次のステージへ進みましょう。</div>
+      <div id="hint" class="hint">コツ：まず2本指を「丸の上」に置いてから、ゆっくりすぼめましょう。<br>広げる動き（ピンチアウト）はこのステージでは成功になりません。</div>
+      <div id="clear" class="clear">🎉 クリア！すべての操作を達成しました。ゴールへ進みましょう！</div>
 
       <div class="controls">
         <button id="reset">リセット</button>
@@ -84,10 +81,10 @@
       let lastTouchEnd = 0;
       document.addEventListener('touchend', function(e){
         const now = Date.now();
-        if (now - lastTouchEnd <= 300) e.preventDefault();
+        if (now - lastTouchEnd <= 300) e.preventDefault(); // ダブルタップ拡大を抑止
         lastTouchEnd = now;
       }, { passive:false });
-      document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, { passive:false });
+      document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, { passive:false }); // ピンチ拡大を抑止
     })();
   </script>
 
@@ -103,38 +100,38 @@
       const hintEl  = document.getElementById('hint');
 
       const GOAL = 5;
-      const SCALE_THRESHOLD = 1.2; // 20% 以上変化で成功
+      const SCALE_THRESHOLD = 1.2; // 20%以上縮めば成功（縮小のみ）
       let count = 0, cleared = false;
 
-      // 2本指管理
+      // 2本指の位置管理
       const pointers = new Map(); // id -> {x,y}
       let baseDist = 0;           // ピンチ開始時の距離
       let pinching = false;
-      let successLocked = false;  // 1ジェスチャにつき1回だけ成功
+      let successLocked = false;  // 1ジェスチャにつき1回だけ加算
 
       function updateUI(){
         countEl.textContent = count;
         leftEl.textContent  = Math.max(0, GOAL - count);
         bar.style.width     = Math.min(100, Math.round(count/GOAL*100)) + '%';
+
         if (!cleared && count >= GOAL){
           cleared = true;
-          tapBtn.textContent = "次のステージへ ▶";
-          tapBtn.style.background =
-            "radial-gradient(circle at 30% 30%, var(--btn-clear1), var(--btn-clear2))";
-          status.textContent = "お見事！ピンチ操作はバッチリです。";
+          tapBtn.textContent = "ゴールへ ▶";
+          // 色はパープルのまま（最終ステージの雰囲気を維持）
+          status.textContent = "お見事！すべてのステージをクリアです。";
           clearEl.style.display = 'block';
-          hintEl.textContent = "ボタンを押して、次のステージへ進みましょう！";
+          hintEl.textContent = "ボタンを押して、ゴールページへ進みましょう！";
         }
       }
 
       function reset(){
         count=0; cleared=false; pinching=false; successLocked=false; baseDist=0;
         pointers.clear();
-        tapBtn.textContent = "2本指で拡大/縮小";
+        tapBtn.textContent = "2本指で縮小";
         tapBtn.style.background =
           "radial-gradient(circle at 30% 30%, var(--btn-c1), var(--btn-c2))";
-        status.textContent = "準備OK。丸の上に2本指を置いて、広げる/すぼめる動きをしてみましょう。";
-        hintEl.textContent = "コツ：まず2本指を「丸の上」に置いてから、ゆっくり広げる/縮める。1本指だけでは成功になりません。";
+        status.textContent = "準備OK。2本指を丸の上に置いて、すぼめてみましょう。";
+        hintEl.textContent = "コツ：まず2本指を「丸の上」に置いてから、ゆっくりすぼめましょう。広げる動きはこのステージでは成功になりません。";
         clearEl.style.display = 'none';
         updateUI();
       }
@@ -148,16 +145,14 @@
       }
 
       function onPointerDown(e){
-        if (cleared){ /* 次へ */ window.location.href = "./stage6.html"; return; }
-        // ボタン上の2本指だけ扱う
+        if (cleared){ window.location.href = "./goal.html"; return; } // クリア後はゴールへ
         pointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
         if (pointers.size === 2){
           baseDist = dist();
           pinching = true;
           successLocked = false;
-          status.textContent = "そのまま指を広げるか、すぼめてみましょう。";
+          status.textContent = "そのまま2本指をすぼめてみましょう。";
         } else if (pointers.size > 2){
-          // 3本以上は対象外：最初の2本で評価
           status.textContent = "2本指で操作してみましょう。";
         }
       }
@@ -171,26 +166,26 @@
         if (current <= 0) return;
         const scale = current / baseDist;
 
-        if (!successLocked && (scale >= SCALE_THRESHOLD || scale <= 1 / SCALE_THRESHOLD)){
-          successLocked = true; // このジェスチャで1回だけ
+        // ★ 縮小のみ成功
+        if (!successLocked && scale <= 1 / SCALE_THRESHOLD){
+          successLocked = true;
           count++;
-          status.textContent = scale > 1 ? "拡大成功！" : "縮小成功！";
+          status.textContent = "縮小成功！";
           updateUI();
         }
       }
 
       function onPointerUp(e){
-        // 2本指→1本指になったらジェスチャ終了
         pointers.delete(e.pointerId);
         if (pointers.size < 2){
           pinching = false;
           baseDist = 0;
           successLocked = false;
           if (!cleared){
-            status.textContent = "もう一度、2本指で拡大/縮小してみましょう。";
+            status.textContent = "もう一度、2本指を置いてすぼめてみましょう。";
           } else {
-            // クリア後は「次へ」ボタンとして動作
-            window.location.href = "./stage6.html";
+            // クリア後はナビ動作
+            window.location.href = "./goal.html";
           }
         }
       }
@@ -203,7 +198,7 @@
         tapBtn.addEventListener('pointerout',    onPointerUp,  { passive:true });
         tapBtn.addEventListener('pointerleave',  onPointerUp,  { passive:true });
       } else {
-        // 古い環境向け（簡易fallback）
+        /* 古い環境の超簡易fallback（可能ならPointerEvent対応端末を推奨） */
         tapBtn.addEventListener('touchstart', (e)=>{
           if (e.touches.length > 0){
             pointers.clear();
