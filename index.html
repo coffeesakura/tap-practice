@@ -63,7 +63,7 @@
     }, { passive:false });
     document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, { passive:false });
   })();
-
+  
   (function(){
     const tapBtn   = document.getElementById('tapBtn');
     const statusEl = document.getElementById('status');
@@ -73,11 +73,12 @@
     const clearMsgEl = document.getElementById('clearMsg');
 
     const GOAL = 5;
-    const DOUBLE_MS = 300;
-    const LONG_MS   = 550;
+    const DOUBLE_MS = 300; // ダブルタップ判定窓
+    const LONG_MS   = 550; // 長押し判定
     let count = 0;
     let cleared = false;
 
+    // 時間管理
     let lastUpTime = 0;
     let pendingSingleTimer = null;
     let longPressTimer = null;
@@ -85,31 +86,33 @@
     let pointerDown = false;
     let longPressTriggered = false;
 
+    function cancelAllTimers(){
+      if (pendingSingleTimer){ clearTimeout(pendingSingleTimer); pendingSingleTimer = null; }
+      if (longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+    }
+
     function updateUI(){
       countEl.textContent = count;
       leftEl.textContent  = Math.max(0, GOAL - count);
       barEl.style.width   = Math.min(100, Math.round(count/GOAL*100)) + '%';
 
+      // ★ クリア時の“色変更＋次へ案内”処理
       if (!cleared && count >= GOAL){
         cleared = true;
-        // --- 案内表示（丸の中の文字を変更して気づいてもらう）---
-        tapBtn.classList.add('next');
+
+        // ボタンの表示を「次のステージへ」に変更
         tapBtn.textContent = "次のステージへ ▶";
+
+        // ボタン色を達成色（グリーン）に変更
+        tapBtn.style.background =
+          "radial-gradient(circle at 30% 30%, #7fffaf, #28a745)";
+
         statusEl.textContent = "お見事！タップはバッチリです。";
         clearMsgEl.style.display = 'block';
 
-        // 以降はカウント処理を停止し、ボタンはナビ専用に
+        // 判定は停止（以降はナビボタンとして使う）
         cancelAllTimers();
       }
-    }
-
-    function cancelAllTimers(){
-      if (pendingSingleTimer) { clearTimeout(pendingSingleTimer); pendingSingleTimer = null; }
-      if (longPressTimer)     { clearTimeout(longPressTimer);     longPressTimer = null; }
-    }
-
-    function gotoNext(){
-      window.location.href = "./stage2.html";
     }
 
     function scheduleSingle(){
@@ -125,13 +128,13 @@
     }
 
     function clearSingle(){
-      if (pendingSingleTimer) {
+      if (pendingSingleTimer){
         clearTimeout(pendingSingleTimer);
         pendingSingleTimer = null;
       }
     }
 
-    function onPointerDown(e){
+    function onPointerDown(){
       if (cleared) return; // クリア後は判定停止
       pointerDown = true;
       longPressTriggered = false;
@@ -146,15 +149,20 @@
       }, LONG_MS);
     }
 
-    function onPointerUp(e){
+    function onPointerUp(){
       // クリア後は「次へ」ボタンとして動作
-      if (cleared) { gotoNext(); return; }
+      if (cleared){
+        window.location.href = "./stage2.html";
+        return;
+      }
 
       const now = performance.now();
       pointerDown = false;
       clearTimeout(longPressTimer);
 
       const dur = now - downTime;
+
+      // 長押し
       if (longPressTriggered || dur >= LONG_MS){
         statusEl.textContent = "長押しになりました。短く『トンッ』でOKです。";
         clearSingle();
@@ -162,6 +170,7 @@
         return;
       }
 
+      // ダブルタップ
       if (lastUpTime && (now - lastUpTime) < DOUBLE_MS){
         statusEl.textContent = "ダブルタップになっちゃいました。1回だけタップしましょう。";
         clearSingle();
@@ -169,18 +178,19 @@
         return;
       }
 
+      // シングル候補 → 遅延で確定
       lastUpTime = now;
       scheduleSingle();
     }
 
-    // イベント設定
-    if (window.PointerEvent) {
+    // イベント設定（Pointer Events優先）
+    if (window.PointerEvent){
       tapBtn.addEventListener('pointerdown', onPointerDown, { passive:true });
       tapBtn.addEventListener('pointerup',   onPointerUp,   { passive:true });
       tapBtn.addEventListener('pointercancel', () => { pointerDown=false; cancelAllTimers(); });
     } else {
-      tapBtn.addEventListener('touchstart', (e)=>onPointerDown(e), { passive:true });
-      tapBtn.addEventListener('touchend',   (e)=>onPointerUp(e),   { passive:true });
+      tapBtn.addEventListener('touchstart', ()=>onPointerDown(), { passive:true });
+      tapBtn.addEventListener('touchend',   ()=>onPointerUp(),   { passive:true });
     }
 
     updateUI();
