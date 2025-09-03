@@ -96,17 +96,26 @@
       let longPressTimer = null;
       let pointerDown = false;
 
-      function updateUI(){
-        countEl.textContent = count;
-        leftEl.textContent  = Math.max(0, GOAL - count);
-        bar.style.width     = Math.min(100, Math.round(count/GOAL*100)) + '%';
-        if (count >= GOAL){
-          clearEl.style.display = 'block';
-          tapBtn.disabled = true;
-          status.textContent = "お見事！リズム良くできています。";
-          hintEl.textContent = "次は長押しやスワイプにも挑戦しましょう。";
-        }
-      }
+function updateUI(){
+  countEl.textContent = count;
+  leftEl.textContent  = Math.max(0, GOAL - count);
+  bar.style.width     = Math.min(100, Math.round(count/GOAL*100)) + '%';
+
+  if (!cleared && count >= GOAL){
+    cleared = true;
+
+    // ボタンを「次のステージへ」に変更
+    tapBtn.textContent = "次のステージへ ▶";
+    // 緑に色変更
+    tapBtn.style.background =
+      "radial-gradient(circle at 30% 30%, #7fffaf, #28a745)";
+
+    status.textContent = "お見事！リズム良くできています。";
+    clearEl.style.display = 'block';
+    hintEl.textContent = "ボタンを押して、ステージ3へ進んでみましょう！";
+  }
+}
+
       function reset(){
         count=0; awaitingSecond=false; firstTapTime=0;
         tapBtn.disabled=false; status.textContent="準備OK。まずは1回目、つづけて2回目！";
