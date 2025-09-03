@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>スマホ操作れんしゅう：ステージ1（タップ）v2</title>
+  <title>スマホ操作れんしゅう：ステージ1（タップ・大きな文字版）</title>
   <style>
     html, body {
       height: 100%;
@@ -11,373 +11,79 @@
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Helvetica Neue", Arial, sans-serif;
       background: #f6f7fb;
       color: #222;
+      font-size: 32px; /* 全体文字を大きく */
     }
-    .wrap {
-      min-height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 16px 80px;
-      box-sizing: border-box;
-      gap: 16px;
-    }
-    .card {
-      width: 100%;
-      max-width: 560px;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.08);
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    .title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      margin: 0 0 8px;
-    }
-    .desc {
-      margin: 0 0 12px;
-      line-height: 1.7;
-      font-size: .95rem;
-    }
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: .9rem;
-      margin: 6px 0 0;
-    }
-    .toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: #f0f3ff;
-      border-radius: 999px;
-      padding: 6px 10px;
-    }
-    .toggle input { accent-color: #2563eb; }
-    .arena {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 0 8px;
-    }
+    .wrap { display: flex; justify-content: center; align-items: center; min-height: 100%; padding: 20px; }
+    .card { background: #fff; padding: 32px; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.08); max-width: 640px; width: 100%; }
+    .title { font-size: 2.5rem; font-weight: 700; margin-bottom: 16px; }
+    .desc { font-size: 1.8rem; line-height: 1.8; margin-bottom: 16px; }
     .tap-btn {
-      width: 240px;
-      height: 240px;
-      border-radius: 50%;
-      border: none;
+      width: 280px; height: 280px; border-radius: 50%; border: none;
       background: radial-gradient(circle at 30% 30%, #63a8ff, #3178ff);
       box-shadow: 0 10px 24px rgba(49,120,255,.35);
-      color: #fff;
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: .05em;
-      transition: transform .05s ease, box-shadow .2s ease, filter .2s ease;
-      touch-action: manipulation;
+      color: #fff; font-size: 2rem; font-weight: 700;
     }
-    .tap-btn:active {
-      transform: scale(.98);
-      filter: brightness(1.03);
-      box-shadow: 0 6px 16px rgba(49,120,255,.35);
-    }
-    .status {
-      text-align: center;
-      min-height: 1.6em;
-      font-weight: 700;
-    }
-    .status small { display: block; font-weight: 500; opacity: .75; }
-    .bar-wrap {
-      background: #eef2ff;
-      height: 12px;
-      border-radius: 999px;
-      overflow: hidden;
-      margin: 8px 0 0;
-    }
-    .bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #65d06e, #2fb44d);
-      transition: width .25s ease;
-    }
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 12px;
-      font-size: .9rem;
-    }
-    .row div { background: #fafbff; border-radius: 8px; padding: 8px; }
-    .hint {
-      font-size: .9rem;
-      color: #333;
-      background: #fffbea;
-      border: 1px solid #ffe58f;
-      padding: 10px 12px;
-      border-radius: 10px;
-      margin-top: 10px;
-    }
-    .footer-note {
-      text-align: center;
-      font-size: .8rem;
-      opacity: .7;
-      margin-top: 8px;
-    }
-    .badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #eef7ee;
-      color: #1f7a2f;
-      font-size: .8rem;
-      font-weight: 700;
-      margin-left: 6px;
-      vertical-align: middle;
-    }
-    .clear-msg {
-      display: none;
-      text-align: center;
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #1f7a2f;
-      margin-top: 10px;
-    }
-    .overlay {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,.0);
-      pointer-events: none;
-      z-index: 10;
-    }
-    .overlay .mark {
-      font-size: 64px;
-      font-weight: 900;
-      color: rgba(0,0,0,.25);
-      text-shadow: 0 2px 8px rgba(0,0,0,.15);
-      transform: scale(1);
-      opacity: 0;
-    }
+    .status { font-size: 1.8rem; font-weight: 700; text-align: center; margin: 20px 0; }
+    .bar-wrap { background: #eef2ff; height: 24px; border-radius: 999px; overflow: hidden; margin-bottom: 16px; }
+    .bar { height: 100%; width: 0%; background: linear-gradient(90deg, #65d06e, #2fb44d); }
+    .row { display: flex; justify-content: space-between; font-size: 1.6rem; margin-bottom: 16px; }
+    .hint { font-size: 1.6rem; background: #fffbea; border: 2px solid #ffe58f; padding: 16px; border-radius: 12px; }
+    .clear-msg { font-size: 2rem; font-weight: 700; color: #1f7a2f; display: none; text-align: center; margin-top: 20px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
-      <p class="title">ステージ 1：<span>タップのれんしゅう</span> <span id="goalBadge" class="badge">5回でクリア</span></p>
+      <p class="title">ステージ 1：タップのれんしゅう</p>
       <p class="desc">大きな丸を「<strong>軽くトンッ</strong>」とタップしてみましょう。うまくいくとカウントが増えます。</p>
-
-      <div class="controls">
-        <label class="toggle" title="やさしめ：広めの判定で成功にします">
-          <input type="checkbox" id="lenient" checked>
-          <span>やさしめモード</span>
-        </label>
-        <button id="reset" style="margin-left:auto">リセット</button>
+      <div style="text-align:center; margin: 20px 0;">
+        <button id="tapBtn" class="tap-btn">ここをタップ</button>
       </div>
-
-      <div class="arena">
-        <button id="tapBtn" class="tap-btn" aria-label="ここをタップ">ここをタップ</button>
-      </div>
-
       <div class="status" id="status">準備OK。ゆっくりで大丈夫です。</div>
-      <div class="bar-wrap" aria-label="進行状況">
-        <div id="bar" class="bar"></div>
-      </div>
-
-      <div class="row">
-        <div>成功数：<strong id="count">0</strong></div>
-        <div>のこり：<strong id="left">5</strong></div>
-        <div>押した時間：<strong id="duration">0</strong> ms</div>
-        <div>タップ間隔：<strong id="interval">–</strong> ms</div>
-      </div>
-
-      <div id="hint" class="hint" role="status" aria-live="polite">
-        ヒント：一瞬だけ触れるイメージでOKです。強く押す必要はありません。
-      </div>
-
-      <div id="clearMsg" class="clear-msg">🎉 クリア！すばらしいタップです。次のステージへ進みましょう。</div>
-
-      <p class="footer-note">＊長押しや連打はカウントされにくい場合があります。「やさしめモード」をONにすると成功しやすくなります。</p>
+      <div class="bar-wrap"><div id="bar" class="bar"></div></div>
+      <div class="row"><div>成功数：<strong id="count">0</strong></div><div>のこり：<strong id="left">5</strong></div></div>
+      <div id="hint" class="hint">ヒント：一瞬だけ触れるイメージでOKです。強く押す必要はありません。</div>
+      <div id="clearMsg" class="clear-msg">🎉 クリア！すばらしいタップです。</div>
     </div>
   </div>
-
-  <div class="overlay" id="overlay"><div class="mark" id="mark">◎</div></div>
-
   <script>
     (function(){
-      const tapBtn = document.getElementById('tapBtn');
-      const statusEl = document.getElementById('status');
-      const countEl = document.getElementById('count');
-      const leftEl = document.getElementById('left');
-      const durationEl = document.getElementById('duration');
-      const intervalEl = document.getElementById('interval');
-      const hintEl = document.getElementById('hint');
-      const barEl = document.getElementById('bar');
-      const clearMsgEl = document.getElementById('clearMsg');
-      const lenientEl = document.getElementById('lenient');
-      const resetEl = document.getElementById('reset');
-      const overlay = document.getElementById('overlay');
-      const mark = document.getElementById('mark');
+      const tapBtn=document.getElementById('tapBtn');
+      const statusEl=document.getElementById('status');
+      const countEl=document.getElementById('count');
+      const leftEl=document.getElementById('left');
+      const barEl=document.getElementById('bar');
+      const clearMsgEl=document.getElementById('clearMsg');
+      const GOAL=5; 
+      let count=0;
+      let lastTapTime=0; // 前回のタップ時間
 
-      const GOAL = 5;
-      let count = 0;
-      let downTime = 0;
-      let lastUpTime = 0;
-      let pointerActive = false;
-      let longPressTimer = null;
-      let sawHighPressure = false;
-
-      function thresholds(){
-        const isLenient = lenientEl.checked;
-        return isLenient ?
-          { LONG: 800, TAP_MAX: 650, DBL: 180 } :
-          { LONG: 450, TAP_MAX: 300, DBL: 280 };
-      }
-
-      function setStatus(msg) { statusEl.textContent = msg; }
-      function setHint(msg) { hintEl.textContent = msg; }
-      function vibrate(ms){ if (navigator.vibrate) try{ navigator.vibrate(ms);}catch(e){} }
-      function flashMark(){
-        overlay.style.display = 'flex';
-        mark.style.opacity = '1';
-        mark.animate(
-          [{ transform: 'scale(0.9)', opacity: .0 }, { transform: 'scale(1.1)', opacity: .9 }, { transform: 'scale(1)', opacity: .0 }],
-          { duration: 320, easing: 'ease-out' }
-        ).onfinish = () => { overlay.style.display = 'none'; };
-      }
-
-      function updateUI() {
-        countEl.textContent = count;
-        leftEl.textContent = Math.max(0, GOAL - count);
-        barEl.style.width = Math.min(100, Math.round(count / GOAL * 100)) + '%';
-        if (count >= GOAL) {
-          clearMsgEl.style.display = 'block';
-          tapBtn.disabled = true;
-          tapBtn.style.filter = "grayscale(0.2) brightness(0.9)";
-          setStatus("お見事！タップはバッチリです。");
-          setHint("次はダブルタップ、長押し、スワイプに進みましょう。");
+      function updateUI(){
+        countEl.textContent=count;
+        leftEl.textContent=Math.max(0,GOAL-count);
+        barEl.style.width=Math.min(100,Math.round(count/GOAL*100))+'%';
+        if(count>=GOAL){
+          clearMsgEl.style.display='block';
+          tapBtn.disabled=true;
+          statusEl.textContent="お見事！タップはバッチリです。";
         }
       }
 
-      function reset(){
-        count = 0;
-        downTime = 0;
-        lastUpTime = 0;
-        pointerActive = false;
-        clearTimeout(longPressTimer);
-        tapBtn.disabled = false;
-        tapBtn.style.filter = "none";
-        clearMsgEl.style.display = 'none';
-        setStatus("準備OK。ゆっくりで大丈夫です。");
-        setHint("ヒント：一瞬だけ触れるイメージでOKです。強く押す必要はありません。");
-        updateUI();
-      }
-
-      function onPointerDown(ev) {
-        pointerActive = true;
-        sawHighPressure = false;
-        downTime = performance.now();
-        if (ev.pressure && ev.pressure > 0.6) { sawHighPressure = true; }
-        const { LONG } = thresholds();
-        clearTimeout(longPressTimer);
-        longPressTimer = setTimeout(() => {
-          if (pointerActive) {
-            setStatus("長押しになっています。");
-            setHint("もう少し短く、軽く『トンッ』と触れてみましょう。");
-          }
-        }, LONG + 50);
-        tapBtn.style.transform = "scale(0.985)";
-      }
-
-      function onPointerMove(ev) {
-        if (!pointerActive) return;
-        if (ev.pressure && ev.pressure > 0.6) { sawHighPressure = true; }
-      }
-
-      function handleSuccess(grade){
+      tapBtn.addEventListener('click',()=>{
+        if(tapBtn.disabled) return;
+        const now=Date.now();
+        if(now - lastTapTime < 300){ // 300ms以内ならダブルタップ扱い
+          statusEl.textContent="ダブルタップになっちゃいました。1回だけタップしましょう。";
+          lastTapTime=now;
+          return;
+        }
+        lastTapTime=now;
         count++;
+        statusEl.textContent="タップ成功！";
         updateUI();
-        tapBtn.animate(
-          [{ filter: "brightness(1)" }, { filter: "brightness(1.25)" }, { filter: "brightness(1)" }],
-          { duration: 180, easing: "ease-out" }
-        );
-        flashMark();
-        vibrate(10);
-        if (grade === "perfect"){
-          setStatus("タップ成功！とても良いです。");
-          setHint("その調子。軽やかなタップで進めましょう。");
-        } else if (grade === "good"){
-          setStatus("成功！少し長めでしたがOKです。");
-          setHint("次はもう少し短く『トンッ』を意識してみましょう。");
-        } else if (grade === "fallback"){
-          setStatus("成功！（クリック互換）");
-          setHint("スマホでは軽く『トンッ』で反応します。");
-        }
-      }
+      });
 
-      function onPointerUp(ev) {
-        pointerActive = false;
-        clearTimeout(longPressTimer);
-        tapBtn.style.transform = "scale(1)";
-
-        const { LONG, TAP_MAX, DBL } = thresholds();
-        const upTime = performance.now();
-        const dur = Math.round(upTime - downTime);
-        durationEl.textContent = dur;
-
-        const gap = lastUpTime ? Math.round(upTime - lastUpTime) : "–";
-        intervalEl.textContent = gap;
-        lastUpTime = upTime;
-
-        if (typeof gap === "number" && gap < DBL) {
-          setStatus("連打になりました。");
-          setHint("このステージは『1回だけタップ』でOK。少し間をあけてもう一度。");
-          vibrate(25);
-          return;
-        }
-        if (dur > LONG) {
-          setStatus("長押しになりました。");
-          setHint("指先で“軽く素早く”触れるイメージでタップしましょう。");
-          vibrate(35);
-          return;
-        }
-
-        // 判定（やさしめは広く成功にする）
-        if (dur <= TAP_MAX) {
-          handleSuccess("perfect");
-        } else {
-          // やさしめモードなら少し長くても成功扱い
-          if (lenientEl.checked && dur <= LONG) {
-            handleSuccess("good");
-          } else {
-            setStatus("少し長めでした。");
-            setHint("200〜300msくらいの『トンッ』が理想です。もう一度やってみましょう。");
-            vibrate(20);
-          }
-        }
-      }
-
-      // Fallback: click（デスクトップ確認用や一部端末向け）
-      function onClick(e){
-        if (tapBtn.disabled) return;
-        if (!('PointerEvent' in window)) {
-          // pointerイベントが無い環境は click で成功扱い
-          handleSuccess("fallback");
-        }
-      }
-
-      tapBtn.addEventListener('pointerdown', onPointerDown);
-      tapBtn.addEventListener('pointermove', onPointerMove);
-      tapBtn.addEventListener('pointerup', onPointerUp);
-      tapBtn.addEventListener('pointercancel', () => { pointerActive = false; clearTimeout(longPressTimer); });
-      tapBtn.addEventListener('click', onClick, { passive: true });
-
-      resetEl.addEventListener('click', reset);
-
-      // 初期UI
-      reset();
+      updateUI();
     })();
   </script>
 </body>
