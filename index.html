@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ダブルタップズーム無効化 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>スマホ操作れんしゅう：ステージ1（タップ・中くらい文字版）</title>
   <style>
     html, body {
@@ -12,16 +13,20 @@
       background: #f6f7fb;
       color: #222;
       font-size: 24px; /* 中くらい文字サイズ */
+      /* 念のため：ページ全体でもダブルタップズーム抑制 */
+      touch-action: manipulation;
     }
     .wrap { display: flex; justify-content: center; align-items: center; min-height: 100%; padding: 20px; }
     .card { background: #fff; padding: 28px; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.08); max-width: 640px; width: 100%; }
     .title { font-size: 2.2rem; font-weight: 700; margin-bottom: 16px; }
     .desc { font-size: 1.3rem; line-height: 1.7; margin-bottom: 16px; }
     .tap-btn {
-      width: 260px; height: 260px; border-radius: 50%; border: none;
+      width: 260px; height: 260px; border: none; border-radius: 50%;
       background: radial-gradient(circle at 30% 30%, #63a8ff, #3178ff);
       box-shadow: 0 10px 24px rgba(49,120,255,.35);
       color: #fff; font-size: 1.6rem; font-weight: 700;
+      /* ボタン単体でもダブルタップズーム抑制 */
+      touch-action: manipulation;
     }
     .status { font-size: 1.4rem; font-weight: 700; text-align: center; margin: 20px 0; }
     .bar-wrap { background: #eef2ff; height: 20px; border-radius: 999px; overflow: hidden; margin-bottom: 16px; }
@@ -48,40 +53,61 @@
   </div>
   <script>
     (function(){
-      const tapBtn=document.getElementById('tapBtn');
-      const statusEl=document.getElementById('status');
-      const countEl=document.getElementById('count');
-      const leftEl=document.getElementById('left');
-      const barEl=document.getElementById('bar');
-      const clearMsgEl=document.getElementById('clearMsg');
-      const GOAL=5; 
-      let count=0;
-      let lastTapTime=0; // 前回のタップ時間
+      const tapBtn = document.getElementById('tapBtn');
+      const statusEl = document.getElementById('status');
+      const countEl = document.getElementById('count');
+      const leftEl  = document.getElementById('left');
+      const barEl   = document.getElementById('bar');
+      const clearMsgEl = document.getElementById('clearMsg');
+
+      const GOAL = 5;
+      const DOUBLE_MS = 300;   // 300ms以内はダブルタップ
+      let count = 0;
+
+      // 遅延判定用
+      let pendingTimer = null;
+      let lastTapTime = 0;
 
       function updateUI(){
-        countEl.textContent=count;
-        leftEl.textContent=Math.max(0,GOAL-count);
-        barEl.style.width=Math.min(100,Math.round(count/GOAL*100))+'%';
-        if(count>=GOAL){
-          clearMsgEl.style.display='block';
-          tapBtn.disabled=true;
-          statusEl.textContent="お見事！タップはバッチリです。";
+        countEl.textContent = count;
+        leftEl.textContent  = Math.max(0, GOAL - count);
+        barEl.style.width   = Math.min(100, Math.round(count/GOAL*100)) + '%';
+        if(count >= GOAL){
+          clearMsgEl.style.display = 'block';
+          tapBtn.disabled = true;
+          statusEl.textContent = "お見事！タップはバッチリです。";
         }
       }
 
-      tapBtn.addEventListener('click',()=>{
-        if(tapBtn.disabled) return;
-        const now=Date.now();
-        if(now - lastTapTime < 300){ // 300ms以内はダブルタップ扱い
-          statusEl.textContent="ダブルタップになっちゃいました。1回だけタップしましょう。";
-          lastTapTime=now;
+      function scheduleSingleTapCount(){
+        // すでに保留中があれば何もしない
+        if (pendingTimer) return;
+        pendingTimer = setTimeout(() => {
+          count++;
+          statusEl.textContent = "タップ成功！";
+          updateUI();
+          pendingTimer = null;
+        }, DOUBLE_MS + 20); // 少し余裕を持たせる
+      }
+
+      function handleTap(){
+        if (tapBtn.disabled) return;
+        const now = Date.now();
+        // 直前のタップから短ければダブルタップ
+        if (now - lastTapTime < DOUBLE_MS){
+          // シングル予定をキャンセルしてカウントしない
+          if (pendingTimer){ clearTimeout(pendingTimer); pendingTimer = null; }
+          statusEl.textContent = "ダブルタップになっちゃいました。1回だけタップしましょう。";
+          lastTapTime = now;
           return;
         }
-        lastTapTime=now;
-        count++;
-        statusEl.textContent="タップ成功！";
-        updateUI();
-      });
+        lastTapTime = now;
+        // シングルタップのカウントを遅延予約
+        scheduleSingleTapCount();
+      }
+
+      // クリック（タップ）イベントで処理
+      tapBtn.addEventListener('click', handleTap);
 
       updateUI();
     })();
