@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>スマホ操作れんしゅう：ゴール！</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{
+      --violet:#7b2fff;
+      --ink:#222;
+      --bg:#f6f7fb;
+      --card:#fff;
+      --link:#3178ff;
+    }
+    html,body{height:100%;margin:0}
+    body{
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Sans","Yu Gothic","Helvetica Neue",Arial,sans-serif;
+      display:flex; align-items:center; justify-content:center;
+      overflow:hidden; /* 花火の外は隠す */
+    }
+    .wrap{
+      position:relative; width:100%; height:100%;
+      display:flex; align-items:center; justify-content:center;
+    }
+    canvas#fw{
+      position:absolute; inset:0; width:100%; height:100%;
+      touch-action:none; /* 画面ジェスチャをここで完結 */
+    }
+    .card{
+      position:relative; z-index:2; text-align:center;
+      background:var(--card); padding:36px 28px; border-radius:16px;
+      box-shadow:0 6px 24px rgba(0,0,0,.08);
+      max-width:680px; margin:16px; box-sizing:border-box;
+    }
+    h1{font-size:2.2rem; margin:0 0 10px; color:var(--violet)}
+    p{font-size:1.2rem; margin:8px 0}
+    .btns{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px}
+    .btn{
+      font-size:1rem; font-weight:700; padding:10px 14px; border-radius:999px;
+      border:0; cursor:pointer; background:#eef2ff; color:#1a2a6c;
+    }
+    a.btn{ text-decoration:none; display:inline-block }
+    .hint{opacity:.7; font-size:.95rem; margin-top:6px}
+
+    /* 動きを減らす設定の人にはアニメなし */
+    @media (prefers-reduced-motion: reduce){
+      canvas#fw{ display:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="fw" aria-hidden="true"></canvas>
+
+    <div class="card" role="group" aria-label="ゴールメッセージ">
+      <h1>🎉 ゴール！</h1>
+      <p>すべてのステージをクリアしました。おめでとうございます！</p>
+      <div class="btns">
+        <a class="btn" href="./">最初のステージに戻る</a>
+        <button id="replay" class="btn" type="button">もう一度 花火をあげる</button>
+      </div>
+      <p class="hint">ヒント：画面の好きな場所をタップしても花火が上がります。</p>
+    </div>
+  </div>
+
+  <script>
+  (()=>{
+    const canvas = document.getElementById('fw');
+    const ctx = canvas.getContext('2d', { alpha: true });
+    let w = 0, h = 0, dpr = Math.max(1, window.devicePixelRatio || 1);
+    let rafId = 0;
+    const fireworks = [];
+    const gravity = 0.06;     // 粒子の重力
+    const drag    = 0.985;    // 空気抵抗
+    const burstMin = 70;      // 粒子数（最小）
+    const burstMax = 110;     // 粒子数（最大）
+    const hueBase = 260;      // ベース色相（紫）
+    let allowMotion = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function resize(){
+      w = canvas.clientWidth * dpr;
+      h = canvas.clientHeight * dpr;
+      canvas.width = w; canvas.height = h;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // 粒子クラス
+    class Particle{
+      constructor(x,y,angle,speed,color,life){
+        this.x = x; this.y = y;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.alpha = 1;
+        this.life = life; // フレーム数
+        this.color = color;
+        this.size = 2 + Math.random()*2;
+      }
+      step(){
+        this.life--;
+        this.vx *= drag;
+        this.vy *= drag;
+        this.vy += gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha = Math.max(0, this.life / 60);
+        return this.life > 0 && this.alpha > 0 && this.y < h + 10;
+      }
+      draw(ctx){
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+      }
+    }
+
+    // 花火（打ち上げ→爆発）
+    class Firework{
+      constructor(x, y){
+        this.x = x; this.y = h; // 画面下から打ち上げ
+        const t = (h - y) / h;  // 打ち上げ時間の目安
+        this.vx = (Math.random()-0.5) * 2;
+        this.vy = - (6 + 6*t);  // 目標高さに応じて調整
+        this.burstY = y + Math.random()*30 - 15; // 付近で爆発
+        this.stage = 'rise';
+        this.particles = [];
+        this.hue = hueBase + (Math.random()*60 - 30); // 紫中心±
+      }
+      step(){
+        if(this.stage === 'rise'){
+          this.vy += gravity*0.5;
+          this.x += this.vx;
+          this.y += this.vy;
+          // 軌跡
+          this.particles.push(new Particle(this.x, this.y, Math.random()*Math.PI*2, Math.random()*0.6, `hsla(${this.hue},100%,65%,0.6)`, 30));
+          if (this.vy >= 0 || this.y <= this.burstY){
+            this.stage = 'burst';
+            this.explode();
+          }
+          // 上昇点自体は生存継続
+          return true;
+        } else {
+          // 粒子群の更新
+          this.particles = this.particles.filter(p => p.step());
+          // 全滅で終了
+          return this.particles.length > 0;
+        }
+      }
+      explode(){
+        const count = Math.floor(burstMin + Math.random()*(burstMax-burstMin));
+        for (let i=0;i<count;i++){
+          const angle = (i / count) * Math.PI*2 + Math.random()*0.05;
+          const speed = 2 + Math.random()*3.5;
+          const sat = 90 + Math.random()*10;
+          const light = 55 + Math.random()*20;
+          const life = 50 + Math.random()*30;
+          const col = `hsl(${this.hue + (Math.random()*30-15)}, ${sat}%, ${light}%)`;
+          this.particles.push(new Particle(this.x, this.y, angle, speed, col, life));
+        }
+      }
+      draw(ctx){
+        if(this.stage==='rise'){
+          // 打ち上げ点（小さな光）
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = `hsl(${this.hue}, 100%, 70%)`;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, 2.2, 0, Math.PI*2);
+          ctx.fill();
+        }
+        // 粒子を描画
+        this.particles.forEach(p => p.draw(ctx));
+      }
+    }
+
+    // ループ
+    function tick(){
+      ctx.clearRect(0,0,w,h);
+      // 少し残像を残す（ふんわり）
+      ctx.globalCompositeOperation = 'lighter';
+
+      for (let i=fireworks.length-1; i>=0; i--){
+        const fw = fireworks[i];
+        if (!fw.step()) fireworks.splice(i,1);
+        else fw.draw(ctx);
+      }
+
+      ctx.globalCompositeOperation = 'source-over';
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function launch(x, y){
+      if (!allowMotion) return;
+      fireworks.push(new Firework(x, y));
+    }
+
+    // 初期の花火（3発）
+    function intro(){
+      const cx = canvas.clientWidth/2;
+      const cy = canvas.clientHeight/2;
+      launch(cx-80, cy-60);
+      launch(cx+30, cy-40);
+      launch(cx+90, cy-90);
+    }
+
+    // 入力：タップ/クリックで任意の位置に花火
+    function clientXY(ev){
+      if ('touches' in ev && ev.touches.length){
+        return { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
+      } else if ('changedTouches' in ev && ev.changedTouches.length){
+        return { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY };
+      } else {
+        return { x: ev.clientX, y: ev.clientY };
+      }
+    }
+    function onTap(ev){
+      const p = clientXY(ev);
+      launch(p.x * dpr, p.y * dpr);
+    }
+
+    // セットアップ
+    if (allowMotion){
+      tick();
+      intro();
+    }else{
+      // 動きを減らす設定のときはキャンバス非表示（CSS）＋静的表示のみ
+    }
+
+    canvas.addEventListener('pointerdown', onTap, { passive:true });
+    canvas.addEventListener('touchstart', onTap, { passive:true });
+
+    // リプレイ
+    document.getElementById('replay').addEventListener('click', ()=>{
+      if (!allowMotion) return;
+      // 画面中央〜上に連続発射
+      const cx = canvas.clientWidth/2, top = canvas.clientHeight*0.35;
+      for (let i=0;i<4;i++){
+        setTimeout(()=> launch(cx + (i-1.5)*60 * dpr, top * dpr), i*180);
+      }
+    });
+
+    // メモリ解放（他ページ遷移時）
+    window.addEventListener('pagehide', ()=> cancelAnimationFrame(rafId));
+  })();
+  </script>
+</body>
+</html>
