@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>スマホ操作れんしゅう：ステージ4（スワイプ）</title>
+  <style>
+    :root{
+      --btn-c1:#ff9aa2; /* 赤系（明るい） */
+      --btn-c2:#ff2d2d; /* 赤系（濃い） */
+      --btn-clear1:#7fffaf; /* クリア後グリーン案内 */
+      --btn-clear2:#28a745;
+    }
+    html,body{
+      height:100%; margin:0;
+      font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Sans","Yu Gothic","Helvetica Neue",Arial,sans-serif;
+      background:#f6f7fb; color:#222; font-size:24px;
+      touch-action: manipulation; -webkit-tap-highlight-color:transparent;
+    }
+    .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
+    .card{background:#fff;padding:28px;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.08);max-width:640px;width:100%}
+    .nav{display:flex;gap:12px;margin:0 0 12px}
+    .nav a{font-size:1rem;text-decoration:none;background:#eef2ff;padding:8px 12px;border-radius:999px}
+    .title{font-size:2rem;font-weight:700;margin:0 0 12px}
+    .desc{font-size:1.2rem;line-height:1.7;margin:0 0 16px}
+    .arena{display:flex;justify-content:center;margin:16px 0}
+    .tap-btn{
+      width:260px;height:260px;border:none;border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, var(--btn-c1), var(--btn-c2));
+      box-shadow:0 10px 24px rgba(0,0,0,.25);
+      color:#fff;font-size:1.6rem;font-weight:700;cursor:pointer;
+      touch-action:none;
+    }
+    .status{font-size:1.3rem;font-weight:700;text-align:center;min-height:2em;margin:14px 0}
+    .bar-wrap{background:#eef2ff;height:20px;border-radius:999px;overflow:hidden;margin-bottom:12px}
+    .bar{height:100%;width:0%;background:linear-gradient(90deg,#65d06e,#2fb44d);transition:width .2s ease}
+    .row{display:flex;justify-content:space-between;font-size:1.1rem;margin-bottom:12px}
+    .hint{font-size:1.2rem;background:#fffbea;border:2px solid #ffe58f;padding:12px;border-radius:12px}
+    .clear{display:none;text-align:center;color:#1f7a2f;font-weight:700;font-size:1.5rem;margin-top:14px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="nav">
+        <a href="./">← ステージ1</a>
+        <a href="./stage2.html">← ステージ2</a>
+        <a href="./stage3.html">← ステージ3</a>
+      </div>
+      <p class="title">ステージ4：スワイプのれんしゅう</p>
+      <p class="desc">大きな丸を<strong>上下左右にスワイプ</strong>してみましょう。<br>方向は自由です。5回成功でクリア！</p>
+
+      <div class="arena">
+        <button id="tapBtn" class="tap-btn" aria-label="ここをスワイプ">ここをスワイプ</button>
+      </div>
+
+      <div id="status" class="status">準備OK。指を滑らせてみましょう。</div>
+      <div class="bar-wrap"><div id="bar" class="bar"></div></div>
+      <div class="row">
+        <div>成功数：<strong id="count">0</strong></div>
+        <div>のこり：<strong id="left">5</strong></div>
+      </div>
+
+      <div id="hint" class="hint">コツ：丸の中を押したまま、上下左右に指を動かすとスワイプです。</div>
+      <div id="clear" class="clear">🎉 クリア！スワイプはバッチリです。次のステージへ進みましょう。</div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const tapBtn=document.getElementById('tapBtn');
+      const status=document.getElementById('status');
+      const bar=document.getElementById('bar');
+      const clearEl=document.getElementById('clear');
+      const countEl=document.getElementById('count');
+      const leftEl=document.getElementById('left');
+      const hintEl=document.getElementById('hint');
+
+      const GOAL=5;
+      let count=0, cleared=false;
+      let startX=0, startY=0, swiping=false;
+
+      function updateUI(){
+        countEl.textContent=count;
+        leftEl.textContent=Math.max(0,GOAL-count);
+        bar.style.width=Math.min(100,Math.round(count/GOAL*100))+'%';
+        if(!cleared && count>=GOAL){
+          cleared=true;
+          tapBtn.textContent="次のステージへ ▶";
+          tapBtn.style.background="radial-gradient(circle at 30% 30%, var(--btn-clear1), var(--btn-clear2))";
+          status.textContent="お見事！スワイプはバッチリです。";
+          clearEl.style.display='block';
+          hintEl.textContent="ボタンを押して、ステージ5へ進んでみましょう！";
+        }
+      }
+
+      function reset(){
+        count=0; cleared=false;
+        tapBtn.textContent="ここをスワイプ";
+        tapBtn.style.background="radial-gradient(circle at 30% 30%, var(--btn-c1), var(--btn-c2))";
+        status.textContent="準備OK。指を滑らせてみましょう。";
+        hintEl.textContent="コツ：丸の中を押したまま、上下左右に指を動かすとスワイプです。";
+        clearEl.style.display='none';
+        updateUI();
+      }
+
+      function onPointerDown(e){
+        if(cleared){ window.location.href="./stage5.html"; return; }
+        swiping=true;
+        startX=e.clientX||e.touches[0].clientX;
+        startY=e.clientY||e.touches[0].clientY;
+      }
+
+      function onPointerUp(e){
+        if(cleared){ window.location.href="./stage5.html"; return; }
+        if(!swiping) return;
+        swiping=false;
+        const endX=e.clientX|| (e.changedTouches?e.changedTouches[0].clientX:0);
+        const endY=e.clientY|| (e.changedTouches?e.changedTouches[0].clientY:0);
+        const dx=endX-startX;
+        const dy=endY-startY;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist>50){ // スワイプ成功閾値
+          count++;
+          status.textContent="スワイプ成功！";
+          updateUI();
+        } else {
+          status.textContent="もう少し大きく指を動かしてみましょう。";
+        }
+      }
+
+      if(window.PointerEvent){
+        tapBtn.addEventListener('pointerdown',onPointerDown,{passive:true});
+        tapBtn.addEventListener('pointerup',onPointerUp,{passive:true});
+      } else {
+        tapBtn.addEventListener('touchstart',onPointerDown,{passive:true});
+        tapBtn.addEventListener('touchend',onPointerUp,{passive:true});
+      }
+
+      reset();
+    })();
+  </script>
+</body>
+</html>
