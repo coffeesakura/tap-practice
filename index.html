@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <!-- ダブルタップズーム無効化 -->
+  <!-- ダブルタップズームをできる限り抑止 -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>スマホ操作れんしゅう：ステージ1（タップ・中くらい文字版）</title>
   <style>
@@ -12,9 +12,9 @@
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Helvetica Neue", Arial, sans-serif;
       background: #f6f7fb;
       color: #222;
-      font-size: 24px; /* 中くらい文字サイズ */
-      /* 念のため：ページ全体でもダブルタップズーム抑制 */
-      touch-action: manipulation;
+      font-size: 24px;
+      touch-action: manipulation;           /* Chrome/Edge系でのダブルタップズーム抑止 */
+      -webkit-tap-highlight-color: transparent;
     }
     .wrap { display: flex; justify-content: center; align-items: center; min-height: 100%; padding: 20px; }
     .card { background: #fff; padding: 28px; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.08); max-width: 640px; width: 100%; }
@@ -25,8 +25,8 @@
       background: radial-gradient(circle at 30% 30%, #63a8ff, #3178ff);
       box-shadow: 0 10px 24px rgba(49,120,255,.35);
       color: #fff; font-size: 1.6rem; font-weight: 700;
-      /* ボタン単体でもダブルタップズーム抑制 */
-      touch-action: manipulation;
+      touch-action: manipulation;           /* iOS以外に有効 */
+      cursor: pointer;
     }
     .status { font-size: 1.4rem; font-weight: 700; text-align: center; margin: 20px 0; }
     .bar-wrap { background: #eef2ff; height: 20px; border-radius: 999px; overflow: hidden; margin-bottom: 16px; }
@@ -51,7 +51,27 @@
       <div id="clearMsg" class="clear-msg">🎉 クリア！すばらしいタップです。</div>
     </div>
   </div>
+
   <script>
+    // --- iOS Safari 対策：ダブルタップズーム/ピンチズームを強力に抑止 ---
+    (function(){
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function(e){
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+          // 300ms以内の連続touchend → ダブルタップと見なし、既定の拡大を止める
+          e.preventDefault();
+        }
+        lastTouchEnd = now;
+      }, { passive: false });
+
+      // ピンチ（2本指）開始も抑止（必要に応じて外せます）
+      document.addEventListener('gesturestart', function(e){
+        e.preventDefault();
+      }, { passive: false });
+    })();
+    // -----------------------------------------------------------------------
+
     (function(){
       const tapBtn = document.getElementById('tapBtn');
       const statusEl = document.getElementById('status');
@@ -80,35 +100,29 @@
       }
 
       function scheduleSingleTapCount(){
-        // すでに保留中があれば何もしない
         if (pendingTimer) return;
         pendingTimer = setTimeout(() => {
           count++;
           statusEl.textContent = "タップ成功！";
           updateUI();
           pendingTimer = null;
-        }, DOUBLE_MS + 20); // 少し余裕を持たせる
+        }, DOUBLE_MS + 20);
       }
 
       function handleTap(){
         if (tapBtn.disabled) return;
         const now = Date.now();
-        // 直前のタップから短ければダブルタップ
         if (now - lastTapTime < DOUBLE_MS){
-          // シングル予定をキャンセルしてカウントしない
           if (pendingTimer){ clearTimeout(pendingTimer); pendingTimer = null; }
           statusEl.textContent = "ダブルタップになっちゃいました。1回だけタップしましょう。";
           lastTapTime = now;
           return;
         }
         lastTapTime = now;
-        // シングルタップのカウントを遅延予約
         scheduleSingleTapCount();
       }
 
-      // クリック（タップ）イベントで処理
       tapBtn.addEventListener('click', handleTap);
-
       updateUI();
     })();
   </script>
