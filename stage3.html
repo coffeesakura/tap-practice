@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- ズーム抑止 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>スマホ操作れんしゅう：ステージ3（長押し）</title>
+  <style>
+    :root{
+      /* ステージ色：グリーン */
+      --btn-c1:#7fffaf;
+      --btn-c2:#28a745;
+      /* クリア時：レッド */
+      --btn-clear1:#ff9aa2;
+      --btn-clear2:#ff2d2d;
+    }
+    html,body{
+      height:100%; margin:0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Helvetica Neue", Arial, sans-serif;
+      background:#f6f7fb; color:#222; font-size:24px;
+      touch-action: manipulation; -webkit-tap-highlight-color:transparent;
+    }
+    .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
+    .card{background:#fff;padding:28px;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.08);max-width:640px;width:100%}
+    .nav{display:flex;gap:12px;margin:0 0 12px}
+    .nav a{font-size:1rem;text-decoration:none;background:#eef2ff;padding:8px 12px;border-radius:999px}
+    .title{font-size:2.0rem;font-weight:700;margin:0 0 12px}
+    .desc{font-size:1.2rem;line-height:1.7;margin:0 0 16px}
+    .arena{display:flex;justify-content:center;margin:16px 0}
+    .tap-btn{
+      width:260px;height:260px;border:none;border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, var(--btn-c1), var(--btn-c2));
+      box-shadow:0 10px 24px rgba(0,0,0,.25);
+      color:#fff;font-size:1.6rem;font-weight:700;cursor:pointer;
+      touch-action:none; /* 要素内でジェスチャ完結 */
+    }
+    .status{font-size:1.3rem;font-weight:700;text-align:center;min-height:2em;margin:14px 0}
+    .bar-wrap{background:#eef2ff;height:20px;border-radius:999px;overflow:hidden;margin-bottom:12px}
+    .bar{height:100%;width:0%;background:linear-gradient(90deg,#65d06e,#2fb44d);transition:width .2s ease}
+    .row{display:flex;justify-content:space-between;font-size:1.1rem;margin-bottom:12px}
+    .hint{font-size:1.2rem;background:#fffbea;border:2px solid #ffe58f;padding:12px;border-radius:12px}
+    .clear{display:none;text-align:center;color:#1f7a2f;font-weight:700;font-size:1.5rem;margin-top:14px}
+    .controls{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+    .controls button{font-size:1rem}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="nav">
+        <a href="./">← ステージ1</a>
+        <a href="./stage2.html">← ステージ2</a>
+      </div>
+      <p class="title">ステージ3：長押しのれんしゅう</p>
+      <p class="desc">大きな丸を<strong>グッと押したまま</strong>にしましょう。<br>約0.7秒（700ms）で「成功！」になります。離して次に進みます。</p>
+
+      <div class="arena">
+        <button id="tapBtn" class="tap-btn" aria-label="ここを長押し">ここを長押し</button>
+      </div>
+
+      <div id="status" class="status">準備OK。押したままにしてみましょう。</div>
+      <div class="bar-wrap"><div id="bar" class="bar"></div></div>
+      <div class="row">
+        <div>成功数：<strong id="count">0</strong></div>
+        <div>のこり：<strong id="left">5</strong></div>
+      </div>
+
+      <div id="hint" class="hint">コツ：指先で「グッ」と押したまま。短く離すと失敗、連打も失敗です。</div>
+      <div id="clear" class="clear">🎉 クリア！長押しはバッチリです。次のステージへ進みましょう。</div>
+
+      <div class="controls">
+        <button id="reset">リセット</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* iOS：ダブル/ピンチ拡大を抑止 */
+    (function(){
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function(e){
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, { passive:false });
+      document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, { passive:false });
+    })();
+
+    (function(){
+      const tapBtn  = document.getElementById('tapBtn');
+      const status  = document.getElementById('status');
+      const bar     = document.getElementById('bar');
+      const clearEl = document.getElementById('clear');
+      const resetEl = document.getElementById('reset');
+      const countEl = document.getElementById('count');
+      const leftEl  = document.getElementById('left');
+      const hintEl  = document.getElementById('hint');
+
+      const GOAL = 5;
+      const HOLD_MS = 700;   // 長押し閾値
+      const DOUBLE_MS = 300; // 連打対策
+      let count = 0, cleared = false;
+
+      // 状態管理
+      let pointerDown = false;
+      let downTime = 0;
+      let holdTimer = null;
+      let longAchieved = false; // その押下で1回だけ成功判定
+      let lastUpTime = 0;
+
+      function updateUI(){
+        countEl.textContent = count;
+        leftEl.textContent  = Math.max(0, GOAL - count);
+        bar.style.width     = Math.min(100, Math.round(count/GOAL*100)) + '%';
+
+        if (!cleared && count >= GOAL){
+          cleared = true;
+          // ボタンを案内用に切替（赤）
+          tapBtn.textContent = "次のステージへ ▶";
+          tapBtn.style.background =
+            "radial-gradient(circle at 30% 30%, var(--btn-clear1), var(--btn-clear2))";
+          status.textContent = "お見事！長押しはバッチリです。";
+          clearEl.style.display = 'block';
+          hintEl.textContent = "ボタンを押して、次のステージへ進みましょう。";
+        }
+      }
+
+      function reset(){
+        count=0; cleared=false; pointerDown=false; downTime=0;
+        longAchieved=false; lastUpTime=0;
+        clearTimeout(holdTimer); holdTimer=null;
+        tapBtn.disabled=false;
+        tapBtn.textContent="ここを長押し";
+        tapBtn.style.background = "radial-gradient(circle at 30% 30%, var(--btn-c1), var(--btn-c2))";
+        status.textContent="準備OK。押したままにしてみましょう。";
+        hintEl.textContent="コツ：指先で「グッ」と押したまま。短く離すと失敗、連打も失敗です。";
+        clearEl.style.display='none';
+        updateUI();
+      }
+
+      function onPointerDown(){
+        if (cleared){ window.location.href="./stage4.html"; return; } // クリア後は次へ
+        pointerDown = true;
+        longAchieved = false;
+        downTime = performance.now();
+        clearTimeout(holdTimer);
+        holdTimer = setTimeout(()=>{
+          if (!pointerDown) return;
+          // 長押し達成（この押下で1回だけカウント）
+          if (!longAchieved){
+            longAchieved = true;
+            count++;
+            status.textContent = "長押し成功！そのまま指を離してください。";
+            updateUI();
+          }
+        }, HOLD_MS);
+      }
+
+      function onPointerUp(){
+        if (cleared){ window.location.href="./stage4.html"; return; } // クリア後は次へ
+        const now = performance.now();
+        pointerDown = false;
+        clearTimeout(holdTimer);
+
+        // 連打（ダブルタップ気味）は注意
+        if (now - lastUpTime < DOUBLE_MS){
+          status.textContent = "連打になりました。押したままにしてみましょう。";
+          lastUpTime = now;
+          return;
+        }
+        lastUpTime = now;
+
+        // 長押し未達なら失敗メッセージ
+        if (!longAchieved){
+          const dur = Math.max(0, Math.round(now - downTime));
+          status.textContent = `少し短かったです（${dur}ms）。約700ms押し続けてみましょう。`;
+          return;
+        }
+
+        // 達成済みなら離して次の試行へ（何もしない）
+      }
+
+      if (window.PointerEvent){
+        tapBtn.addEventListener('pointerdown', onPointerDown, { passive:true });
+        tapBtn.addEventListener('pointerup',   onPointerUp,   { passive:true });
+        tapBtn.addEventListener('pointercancel', ()=>{ pointerDown=false; clearTimeout(holdTimer); });
+      } else {
+        tapBtn.addEventListener('touchstart', ()=>onPointerDown(), { passive:true });
+        tapBtn.addEventListener('touchend',   ()=>onPointerUp(),   { passive:true });
+      }
+
+      resetEl.addEventListener('click', reset);
+      reset();
+    })();
+  </script>
+</body>
+</html>
