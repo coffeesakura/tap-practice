@@ -9,6 +9,16 @@
 
 ---
 
+## 📸 スクリーンショット
+
+ステージ1（タップ練習画面の例）  
+
+<p align="center">
+  <img src="./screenshot-stage1.jpg" alt="ステージ1の画面サンプル" width="320">
+</p>
+
+---
+
 ## ステージ一覧
 
 1. **タップ**  
@@ -36,5 +46,3 @@
 
 - **ライセンス**: MIT License  
 - **著作権表示**: © 2025 Fumiaki Ohnishi & Puchi
-
----
